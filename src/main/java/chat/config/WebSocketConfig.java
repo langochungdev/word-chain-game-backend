@@ -11,7 +11,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // Dùng native WebSocket; nếu cần SockJS, thêm .withSockJS()
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("http://localhost:5173", "http://localhost:63342", "https://word-chain-game-mu.vercel.app/")
+                .setAllowedOriginPatterns("http://localhost:5173", "http://localhost:63342", "https://word-chain-game-mu.vercel.app","https://*.up.railway.app",
+                        "http://*.up.railway.app")
                 .withSockJS();;
     }
 
