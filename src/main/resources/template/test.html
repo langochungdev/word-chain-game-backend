@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spring WS + Firebase Chat Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; }
+        .row { display: flex; gap: 8px; margin-bottom: 8px; }
+        input { padding: 6px; flex: 1; }
+        button { padding: 6px 12px; }
+        #log { border: 1px solid #ccc; min-height: 300px; padding: 8px; overflow-y: auto; background: #fafafa; }
+        .msg { border-bottom: 1px dashed #ddd; padding: 4px 0; }
+        .msg:last-child { border-bottom: none; }
+        small { color: #777; margin-left: 6px; }
+    </style>
+</head>
+<body>
+<h2>Spring Boot WebSocket Chat Test</h2>
+
+<div class="row">
+    <label>WS URL:</label>
+    <input id="wsUrl" value="http://localhost:8080/ws">
+</div>
+<div class="row">
+    <label>Room:</label>
+    <input id="room" value="word-chain">
+</div>
+<div class="row">
+    <label>Sender:</label>
+    <input id="sender" value="u1">
+</div>
+<div class="row">
+    <button onclick="connect()" id="btnConnect">Connect</button>
+    <button onclick="disconnect()" id="btnDisconnect" disabled>Disconnect</button>
+</div>
+
+<h3>Messages</h3>
+<div id="log"></div>
+
+<div class="row">
+    <input id="content" placeholder="Type message..." onkeypress="if(event.key==='Enter') sendMsg()">
+    <button onclick="sendMsg()">Send</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script>
+    let stomp = null;
+    let sub = null;
+
+    function logMessage(msg) {
+        const box = document.getElementById('log');
+        box.innerHTML += msg + "<br>";
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function connect() {
+        const wsUrl = document.getElementById('wsUrl').value;
+        const sock = new SockJS(wsUrl); // cần /ws + .withSockJS() ở server
+        stomp = Stomp.over(sock);
+        stomp.debug = null;
+
+        stomp.connect({}, () => {
+            document.getElementById('btnConnect').disabled = true;
+            document.getElementById('btnDisconnect').disabled = false;
+
+            const roomId = document.getElementById('room').value;
+            sub = stomp.subscribe(`/topic/room.${roomId}`, frame => {
+                const m = JSON.parse(frame.body);
+                const time = m.timestamp ? new Date(m.timestamp).toLocaleTimeString() : '';
+                logMessage(`<div class="msg"><b>${m.senderId}</b>: ${m.content} <small>${time}</small></div>`);
+            });
+
+            logMessage(`<i>Connected to room ${roomId}</i>`);
+        }, err => {
+            console.error('WS error', err);
+            logMessage(`<span style="color:red">Connection error</span>`);
+        });
+    }
+
+    function sendMsg() {
+        if (!stomp || !stomp.connected) return;
+        const payload = {
+            roomId: document.getElementById('room').value,
+            senderId: document.getElementById('sender').value,
+            content: document.getElementById('content').value
+        };
+        stomp.send('/app/chat.send', {}, JSON.stringify(payload));
+        document.getElementById('content').value = '';
+    }
+
+    function disconnect() {
+        if (sub) sub.unsubscribe();
+        if (stomp) stomp.disconnect();
+        document.getElementById('btnConnect').disabled = false;
+        document.getElementById('btnDisconnect').disabled = true;
+        logMessage(`<i>Disconnected</i>`);
+    }
+</script>
+</body>
+</html>
