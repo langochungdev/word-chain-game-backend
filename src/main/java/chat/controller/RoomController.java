@@ -29,7 +29,7 @@ public class RoomController {
         if (roomIdObj == null) return;
         String roomId = String.valueOf(roomIdObj).trim();
         if (roomId.isEmpty()) return;
-        
+
         Object typeObj = info.get("type");
         if (typeObj != null && "reset".equals(String.valueOf(typeObj))) {
             chatRepo.deleteAllByRoomId(roomId);
