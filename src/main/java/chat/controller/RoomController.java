@@ -35,12 +35,7 @@ public class RoomController {
             chatHistoryService.clear(roomId);
             usedWordService.clear(roomId);
         }
-
-        Object playersObj = info.get("players");
-        if (!(playersObj instanceof List) || ((List<?>) playersObj).isEmpty()) {
-            chatHistoryService.clear(roomId);
-            usedWordService.clear(roomId);
-        }
+        
         template.convertAndSend("/topic/room-info." + roomId, info);
     }
 }
