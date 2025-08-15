@@ -1,25 +1,25 @@
 package chat.controller;
-
-import chat.service.FirebaseChatRepository;
-import com.google.firebase.database.FirebaseDatabase;
+import chat.service.ChatHistoryService;
+import chat.service.UsedWordService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
-
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Controller
 public class RoomController {
     private final SimpMessagingTemplate template;
-    private final FirebaseDatabase db;
-    private final FirebaseChatRepository chatRepo;
+    private final ChatHistoryService chatHistoryService;
+    private final UsedWordService usedWordService;
 
-    public RoomController(SimpMessagingTemplate template, FirebaseDatabase db,FirebaseChatRepository chatRepo) {
+    public RoomController(SimpMessagingTemplate template,
+                          ChatHistoryService chatHistoryService,
+                          UsedWordService usedWordService) {
         this.template = template;
-        this.db = db;
-        this.chatRepo = chatRepo;
+        this.chatHistoryService = chatHistoryService;
+        this.usedWordService = usedWordService;
     }
 
     @MessageMapping("/room.update")
@@ -31,17 +31,19 @@ public class RoomController {
         if (roomId.isEmpty()) return;
 
         Object typeObj = info.get("type");
-        if (typeObj != null && "reset".equals(String.valueOf(typeObj))) {
-            chatRepo.deleteAllByRoomId(roomId);
+        if (typeObj != null && "reset".equalsIgnoreCase(String.valueOf(typeObj))) {
+            chatHistoryService.clear(roomId);
+            usedWordService.clear(roomId);
         }
-        // Lưu phần cần thiết (không đụng vào scores/type/winner để khỏi mất)
-        Map<String, Object> data = new HashMap<>();
-        data.put("roomId", roomId);
-        data.put("targetScore", info.get("targetScore"));
-        data.put("players", info.get("players"));
-        db.getReference("rooms").child(roomId).setValueAsync(data);
 
-        // Broadcast nguyên payload (giữ type, scores, winner, origin...)
+        Object playersObj = info.get("players");
+        if (playersObj instanceof List) {
+            List<?> players = (List<?>) playersObj;
+            if (players.isEmpty()) {
+                chatHistoryService.clear(roomId);
+                usedWordService.clear(roomId);
+            }
+        }
         template.convertAndSend("/topic/room-info." + roomId, info);
     }
 }

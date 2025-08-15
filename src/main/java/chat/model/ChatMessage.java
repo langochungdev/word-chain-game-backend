@@ -1,8 +1,6 @@
 package chat.model;
-
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
-
 import java.time.Instant;
 
 @Data
@@ -16,5 +14,5 @@ public class ChatMessage {
     private String senderId;
     @NotBlank
     private String content;
-    private Instant timestamp; // server set
+    private Instant timestamp;
 }

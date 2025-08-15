@@ -8,5 +8,5 @@ import lombok.*;
 public class PlayerInfo {
     private String id;
     private String name;
-    private String core;
+    private Integer score;
 }
